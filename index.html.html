@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Twenty10s Players</title>
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js";
+
+    const supabase = createClient(
+      "https://lvzktprqdfzbgasorbgo.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2emt0cHJxZGZ6Ymdhc29yYmdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2OTQzMTYsImV4cCI6MjA3ODI3MDMxNn0.r2ZXYc1mYna72oxijRH2u1N63_ZEmCeTL-zcVj-6WUY"
+    );
+
+    async function loadPlayers() {
+      const { data, error } = await supabase
+        .from("players")
+        .select("*")
+        .order("Rating", { ascending: false });
+
+      if (error) {
+        document.body.innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
+        return;
+      }
+
+      const list = data
+        .map(p => `<li>${p.Name} — ${p.Club} (${p.Rating})</li>`)
+        .join("");
+      document.getElementById("players").innerHTML = list;
+    }
+
+    loadPlayers();
+  </script>
+</head>
+<body style="font-family: sans-serif; padding: 1rem;">
+  <h1>Players</h1>
+  <ul id="players"></ul>
+</body>
+</html>
