@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Twenty10s — Random Teams</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles/theme.css">
+</head>
+<body>
+  <h1>Twenty10s — Random Matchup</h1>
+
+  <div class="bar">
+    <button id="btn-generate">🎲 Generate</button>
+    <button id="btn-rematch">🔁 Rematch</button>
+    <button id="btn-goat">🐐 Guaranteed 95+ on BOTH teams</button>
+    <span class="pill">Formation: GK, RB, CB, CB, LB, CDM, CM, CAM, LW, ST, RW</span>
+  </div>
+
+  <div id="error" class="err"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="team-title"><strong>Team A</strong><span id="sumA" class="pill"></span></div>
+      <ul id="teamA"></ul>
+    </div>
+    <div class="card">
+      <div class="team-title"><strong>Team B</strong><span id="sumB" class="pill"></span></div>
+      <ul id="teamB"></ul>
+    </div>
+  </div>
+
+  <div class="footer">Back five show Clean Sheets; front six don’t. Green = position winner · Red = loser · Ties = neutral.</div>
+
+  <script type="module" src="scripts/main.js"></script>
+</body>
+</html>
