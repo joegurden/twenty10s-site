@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Twenty10s — Random Teams</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles/theme.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Twenty10s — Random Matchup</h1>
+    <div class="bar">
+      <button id="btn-generate">🎲 Generate</button>
+      <button id="btn-rematch">🔁 Rematch</button>
+      <button id="btn-goat">🐐 95+ on BOTH</button>
+      <button id="btn-draft">🖐️ Draft Mode (pick from 5)</button>
+      <span class="pill">Formation: GK, RB, CB, CB, LB, CDM, CM, CAM, LW, ST, RW</span>
+    </div>
+  </header>
+
+  <div id="error" class="err"></div>
+
+  <!-- Teams -->
+  <section class="grid">
+    <div class="card">
+      <div class="team-title">
+        <strong>Team A</strong>
+        <span id="sumA" class="pill"></span>
+      </div>
+      <ul id="teamA"></ul>
+    </div>
+
+    <div class="card">
+      <div class="team-title">
+        <strong>Opponents</strong>
+        <span id="sumB" class="pill"></span>
+      </div>
+      <ul id="teamB"></ul>
+    </div>
+  </section>
+
+  <!-- Draft Mode Panel -->
+  <section id="draftPanel" class="card draft hidden">
+    <div class="draft-head">
+      <div>
+        <strong>Draft Mode</strong>
+        <span id="draftStep" class="pill"></span>
+      </div>
+      <button id="btn-exit-draft" class="ghost">✖ Exit</button>
+    </div>
+
+    <div id="draftInstruction" class="draft-instruction"></div>
+
+    <!-- Candidate cards for the current slot -->
+    <div id="candidates" class="candidates"></div>
+
+    <!-- Subs picker -->
+    <div id="subsArea" class="hidden">
+      <div class="subs-head">
+        <strong>Your Subs</strong>
+        <span id="subsCount" class="pill">0 / 5</span>
+        <div class="spacer"></div>
+        <button id="btn-auto-subs" class="ghost">⚡ Auto-pick 5</button>
+        <button id="btn-finish-draft" class="primary">✅ Finish & Show Teams</button>
+      </div>
+      <div id="subsCandidates" class="candidates"></div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Back five show Clean Sheets; front six don’t. Green = position winner · Red = loser · Ties = neutral.
+  </footer>
+
+  <script type="module" src="scripts/main.js"></script>
+</body>
+</html>
