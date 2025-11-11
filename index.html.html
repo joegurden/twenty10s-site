@@ -2,37 +2,214 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Twenty10s Players</title>
+  <title>Twenty10s — Random Teams</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      /* Champions League vibe */
+      --bg1:#001a4d; --bg2:#0a2a6e; --card:#0d1f4a; --line:#1c3473;
+      --text:#eef4ff; --muted:#a8b7e6; --accent:#6bd1ff;
+      --win:#0f3f2a; --lose:#3f1c1c;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; padding:24px; min-height:100vh;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:var(--text);
+      background: radial-gradient(1200px 700px at 20% -10%, #13357d 0%, transparent 60%),
+                  linear-gradient(180deg,var(--bg1),var(--bg2));
+    }
+    h1{margin:0 0 12px; font-size:22px}
+    .bar{display:flex; gap:10px; align-items:center; margin:8px 0 16px; flex-wrap:wrap}
+    button{background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:12px; padding:10px 14px; cursor:pointer}
+    button:hover{border-color:var(--accent)}
+    .grid{display:grid; grid-template-columns:1fr; gap:16px}
+    @media (min-width:880px){ .grid{ grid-template-columns:1fr 1fr } }
+    .card{background:rgba(13,31,74,.9); border:1px solid var(--line); border-radius:16px; padding:14px; backdrop-filter: blur(3px); }
+    .team-title{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px}
+    .pill{font-size:12px; color:var(--muted)}
+    ul{list-style:none; padding:0; margin:0}
+    li{display:flex; justify-content:space-between; gap:8px; padding:10px 8px; border-top:1px solid #162d66}
+    li:first-child{border-top:0}
+    .pos{width:54px; color:var(--muted); font-weight:600}
+    .name{flex:1}
+    .meta{text-align:right; white-space:nowrap; color:var(--muted)}
+    .sub{display:block; font-size:12px; color:var(--muted)}
+    .err{margin-top:8px; color:#ffb3ba}
+    .winner{background:var(--win)}
+    .loser{background:var(--lose)}
+    .footer{margin-top:12px; color:var(--muted); font-size:12px}
+  </style>
+</head>
+<body>
+  <h1>Twenty10s — Random Matchup</h1>
+  <div class="bar">
+    <button id="btn-generate">🎲 Generate</button>
+    <button id="btn-rematch">🔁 Rematch</button>
+    <button id="btn-goat">🐐 Guaranteed 95+ on BOTH teams</button>
+    <span class="pill">Formation: GK, RB, CB, CB, LB, CDM, CM, CAM, LW, ST, RW</span>
+  </div>
+
+  <div id="error" class="err"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="team-title"><strong>Team A</strong><span id="sumA" class="pill"></span></div>
+      <ul id="teamA"></ul>
+    </div>
+    <div class="card">
+      <div class="team-title"><strong>Team B</strong><span id="sumB" class="pill"></span></div>
+      <ul id="teamB"></ul>
+    </div>
+  </div>
+
+  <div class="footer">Back five show Clean Sheets; front six don’t. Green = position winner · Red = loser · Ties = neutral.</div>
+
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js";
 
     const supabase = createClient(
-      "https://lvzktprqdfzbgasorbgo.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2emt0cHJxZGZ6Ymdhc29yYmdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2OTQzMTYsImV4cCI6MjA3ODI3MDMxNn0.r2ZXYc1mYna72oxijRH2u1N63_ZEmCeTL-zcVj-6WUY"
+     "https://lvzktprqdfzbgasorbgo.supabase.co",
+   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2emt0cHJxZGZ6Ymdhc29yYmdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2OTQzMTYsImV4cCI6MjA3ODI3MDMxNn0.r2ZXYc1mYna72oxijRH2u1N63_ZEmCeTL-zcVj-6WUY"
     );
 
-    async function loadPlayers() {
-      const { data, error } = await supabase
-        .from("players")
-        .select("*")
-        .order("Rating", { ascending: false });
 
-      if (error) {
-        document.body.innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
-        return;
+    // Formation & display rules
+    const FORMATION = ["GK","RB","CB","CB","LB","CDM","CM","CAM","LW","ST","RW"];
+    const BACKLINE = new Set(["GK","RB","CB","LB"]);
+
+    // Helpers
+    const $ = (id) => document.getElementById(id);
+    const keyOf = (p) => `${p.Name}|${p.Club}`;
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+    function sumRating(t){ return t.reduce((s,p)=> s + (Number(p.Rating)||0), 0); }
+    function has95(team){ return team.some(p => Number(p.Rating) >= 95); }
+
+    // Data pools
+    let poolByPos = new Map();
+
+    async function loadPools(){
+      poolByPos.clear();
+      const distinct = [...new Set(FORMATION)];
+      for (const pos of distinct) {
+        const { data, error } = await supabase
+          .from("players").select("*").eq("Position", pos).limit(500);
+        if (error) throw new Error(`Failed to load ${pos}: ${error.message}`);
+        poolByPos.set(pos, shuffle([...(data || [])]));
       }
-
-      const list = data
-        .map(p => `<li>${p.Name} — ${p.Club} (${p.Rating})</li>`)
-        .join("");
-      document.getElementById("players").innerHTML = list;
     }
 
-    loadPlayers();
+    function drawTeam(excludedKeys){
+      const team=[]; const taken=new Set(excludedKeys||[]);
+      const pools=new Map([...poolByPos.entries()].map(([k,v])=>[k,[...v]]));
+      for (const pos of FORMATION){
+        const pool=pools.get(pos)||[]; let pick=null;
+        while (pool.length){
+          const c=pool.pop();
+          if (!taken.has(keyOf(c))){ pick=c; break; }
+        }
+        if (!pick) throw new Error(`Not enough ${pos} players. Add more ${pos}s.`);
+        team.push(pick); taken.add(keyOf(pick));
+      }
+      return { team, taken };
+    }
+
+    function statsHTML(p, showCS){
+      const parts = [
+        p.Club, p.League,
+        `Apps ${p.Appearances ?? 0}`,
+        `G ${p.Goals ?? 0}`,
+        `A ${p.Assists ?? 0}`
+      ];
+      if (showCS) parts.push(`CS ${p["Clean Sheets"] ?? 0}`);
+      return parts.filter(Boolean).join(" · ");
+    }
+
+    function renderTeams(A,B){
+      const aHTML=[], bHTML=[];
+      for (let i=0;i<FORMATION.length;i++){
+        const pA=A[i], pB=B[i];
+        const rA=Number(pA.Rating||0), rB=Number(pB.Rating||0);
+        let classA="", classB="";
+        if (rA>rB){ classA="winner"; classB="loser"; }
+        else if (rB>rA){ classA="loser"; classB="winner"; }
+        const back=BACKLINE.has(FORMATION[i]);
+        aHTML.push(`<li class="${classA}">
+          <span class="pos">${pA.Position}</span>
+          <span class="name">${pA.Name}<span class="sub"> ${statsHTML(pA, back)}</span></span>
+          <span class="meta">${rA}</span>
+        </li>`);
+        bHTML.push(`<li class="${classB}">
+          <span class="pos">${pB.Position}</span>
+          <span class="name">${pB.Name}<span class="sub"> ${statsHTML(pB, back)}</span></span>
+          <span class="meta">${rB}</span>
+        </li>`);
+      }
+      $("teamA").innerHTML=aHTML.join("");
+      $("teamB").innerHTML=bHTML.join("");
+    }
+
+    // 🐐 Ensure EACH team has a 95+ player
+    async function ensureGoatsOnBoth(A, B){
+      if (has95(A) && has95(B)) return;
+
+      // Fetch a pool of 95+ once
+      const { data: goats, error } = await supabase
+        .from("players").select("*").gte("Rating", 95).limit(500);
+      if (error) return; // silently skip if none
+
+      const pool = shuffle(goats || []);
+      function inject(team, other){
+        if (has95(team)) return true;
+        for (const g of pool){
+          // must match formation slot position
+          const slots = FORMATION.map((pos,i)=>pos===g.Position? i : -1).filter(i=>i>=0);
+          // avoid duplicates across both teams
+          if (team.some(p=>keyOf(p)===keyOf(g))) continue;
+          if (other.some(p=>keyOf(p)===keyOf(g))) continue;
+
+          // prefer replacing a sub-95 at a matching slot
+          let idx = slots.find(i => Number(team[i].Rating||0) < 95);
+          if (idx === undefined) idx = slots[0]; // fallback: any matching slot
+
+          if (idx !== undefined){
+            team[idx] = g;
+            // remove g from pool to avoid re-use
+            pool.splice(pool.indexOf(g), 1);
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // Try to inject into each team that needs it
+      if (!has95(A)) inject(A, B);
+      if (!has95(B)) inject(B, A);
+    }
+
+    async function generate(goatBoth=false){
+      $("error").textContent="";
+      try{
+        await loadPools();
+        const { team: A, taken } = drawTeam();
+        const { team: B } = drawTeam(taken);
+
+        if (goatBoth) await ensureGoatsOnBoth(A, B);
+
+        renderTeams(A,B);
+        $("sumA").textContent=`Total ${sumRating(A)}`;
+        $("sumB").textContent=`Total ${sumRating(B)}`;
+      }catch(e){
+        $("error").textContent=e.message;
+        $("teamA").innerHTML=$("teamB").innerHTML="";
+        $("sumA").textContent=$("sumB").textContent="";
+      }
+    }
+
+    $("btn-generate").addEventListener("click", () => generate(false));
+    $("btn-rematch").addEventListener("click",   () => generate(false));
+    $("btn-goat").addEventListener("click",      () => generate(true));
+
+    generate(false);
   </script>
-</head>
-<body style="font-family: sans-serif; padding: 1rem;">
-  <h1>Players</h1>
-  <ul id="players"></ul>
 </body>
 </html>
